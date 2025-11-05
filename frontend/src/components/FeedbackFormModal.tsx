@@ -5,19 +5,15 @@ import { X, Star, ThumbsUp, MessageSquare, Send } from 'lucide-react'
 interface FeedbackFormModalProps {
   isOpen: boolean
   onClose: () => void
-  routingId: string
-  customerName: string
-  agentName: string
-  onSubmit: (feedback: any) => void
+  agent: any
+  conversationId: string
 }
 
 const FeedbackFormModal: React.FC<FeedbackFormModalProps> = ({
   isOpen,
   onClose,
-  routingId,
-  customerName,
-  agentName,
-  onSubmit
+  agent,
+  conversationId
 }) => {
   const [ratings, setRatings] = React.useState({
     satisfaction_score: 5,
@@ -35,14 +31,28 @@ const FeedbackFormModal: React.FC<FeedbackFormModalProps> = ({
     setIsSubmitting(true)
     
     try {
-      await onSubmit({
-        ...ratings,
-        would_recommend: wouldRecommend,
-        comments
+      // Submit feedback to backend
+      const response = await fetch('http://localhost:8000/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          agent_id: agent?.id,
+          ...ratings,
+          would_recommend: wouldRecommend,
+          comments
+        })
       })
-      onClose()
+      
+      if (response.ok) {
+        alert('Thank you for your feedback!')
+        onClose()
+      } else {
+        alert('Failed to submit feedback. Please try again.')
+      }
     } catch (error) {
       console.error('Error submitting feedback:', error)
+      alert('Failed to submit feedback. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -119,7 +129,7 @@ const FeedbackFormModal: React.FC<FeedbackFormModalProps> = ({
                 {/* Agent Info */}
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 text-center">
                   <p className="text-white/70 text-sm mb-1">You were assisted by</p>
-                  <p className="text-white font-semibold text-lg">{agentName}</p>
+                  <p className="text-white font-semibold text-lg">{agent?.name || 'Agent'}</p>
                 </div>
 
                 {/* Overall Satisfaction */}

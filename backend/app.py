@@ -437,6 +437,37 @@ async def get_performance_metrics():
     }
 
 
+# Feedback endpoint
+@app.post("/feedback")
+async def submit_feedback(feedback_data: dict):
+    """Submit customer feedback for a conversation"""
+    try:
+        # In a real system, this would be stored in the database
+        feedback = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": feedback_data.get("conversation_id"),
+            "agent_id": feedback_data.get("agent_id"),
+            "satisfaction_score": feedback_data.get("satisfaction_score", 5),
+            "agent_professionalism": feedback_data.get("agent_professionalism", 5),
+            "issue_resolution": feedback_data.get("issue_resolution", 5),
+            "wait_time_satisfaction": feedback_data.get("wait_time_satisfaction", 4),
+            "would_recommend": feedback_data.get("would_recommend", True),
+            "comments": feedback_data.get("comments", ""),
+            "submitted_at": datetime.now().isoformat()
+        }
+        
+        # Store feedback (in a real system, this would go to database)
+        print(f"📝 Feedback received: {feedback}")
+        
+        return {
+            "message": "Feedback submitted successfully",
+            "feedback_id": feedback["id"]
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to submit feedback: {str(e)}"}, 500
+
+
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
