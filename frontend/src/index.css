@@ -1,0 +1,630 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .status-indicator {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .rs-score-high {
+    @apply bg-rs-high/10 text-rs-high border border-rs-high/20;
+  }
+  
+  .rs-score-medium {
+    @apply bg-rs-medium/10 text-rs-medium border border-rs-medium/20;
+  }
+  
+  .rs-score-low {
+    @apply bg-rs-low/10 text-rs-low border border-rs-low/20;
+  }
+}
+/* Custom
+ scrollbar with warm gradient */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #ff6b9d, #c44569);
+}
+
+/* Custom slider styling with warm gradient */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 120, 73, 0.3);
+  transition: all 0.3s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 120, 73, 0.5);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(255, 120, 73, 0.3);
+}
+
+/* Custom select dropdown styling with warm gradient */
+select {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  background-image: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8)),
+                    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ff7849' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: 0 0, right 0.5rem center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 1.5em 1.5em;
+  padding-right: 2.5rem;
+  color: white !important;
+  border: 1px solid rgba(255, 120, 73, 0.3) !important;
+  transition: all 0.3s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select:focus {
+  background-color: rgba(30, 41, 59, 1) !important;
+  background-image: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9)),
+                    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ff7849' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  border-color: #ff7849 !important;
+  box-shadow: 0 0 0 2px rgba(255, 120, 73, 0.2) !important;
+  outline: none !important;
+}
+
+/* Dropdown options styling */
+select option {
+  background-color: #1e293b !important;
+  background-image: none !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  font-weight: 500;
+}
+
+select option:hover {
+  background-color: #334155 !important;
+  background-image: linear-gradient(135deg, rgba(255, 120, 73, 0.2), rgba(255, 107, 157, 0.2)) !important;
+}
+
+select option:checked,
+select option:focus {
+  background-color: #334155 !important;
+  background-image: linear-gradient(135deg, rgba(255, 120, 73, 0.3), rgba(255, 107, 157, 0.3)) !important;
+  color: #ff7849 !important;
+  font-weight: 600;
+}
+
+/* Input field styling with warm gradient theme */
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="password"],
+input[type="search"],
+textarea {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8)) !important;
+  border: 1px solid rgba(255, 120, 73, 0.3) !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus,
+input[type="search"]:focus,
+textarea:focus {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9)) !important;
+  border-color: #ff7849 !important;
+  box-shadow: 0 0 0 2px rgba(255, 120, 73, 0.2) !important;
+  outline: none !important;
+}
+
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="search"]::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Autofill styling to prevent white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(30, 41, 59, 0.9) inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Toggle switch styling with warm gradient */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.2);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Button hover effects with warm gradient */
+.btn-warm-gradient {
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+  transition: all 0.3s ease;
+}
+
+.btn-warm-gradient:hover {
+  background: linear-gradient(135deg, #ff6b9d, #c44569);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 120, 73, 0.3);
+}
+
+/* Card backgrounds with consistent warm theme */
+.card-warm {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Notification styling */
+.notification-success {
+  background: linear-gradient(135deg, rgba(0, 210, 211, 0.2), rgba(0, 210, 211, 0.1));
+  border: 1px solid rgba(0, 210, 211, 0.3);
+}
+
+.notification-error {
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.2), rgba(255, 107, 157, 0.1));
+  border: 1px solid rgba(255, 107, 157, 0.3);
+}
+
+.notification-info {
+  background: linear-gradient(135deg, rgba(84, 109, 229, 0.2), rgba(84, 109, 229, 0.1));
+  border: 1px solid rgba(84, 109, 229, 0.3);
+}
+
+
+/* Global form element styling to match warm gradient theme */
+input, select, textarea, button {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Ensure all inputs have consistent styling */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8)) !important;
+  border: 1px solid rgba(255, 120, 73, 0.3) !important;
+  color: white !important;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+/* Checkbox and radio button styling */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #ff7849;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+/* Disabled input styling */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* Form labels */
+label {
+  color: white;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Button base styling */
+button:not(.no-style) {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Remove default button styles */
+button:focus {
+  outline: none;
+}
+
+/* Ensure modals and overlays have proper backdrop */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure all text in forms is visible */
+form * {
+  color: white;
+}
+
+form input::placeholder,
+form textarea::placeholder,
+form select::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Number input arrows styling */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+/* Date and time inputs */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8)) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 120, 73, 0.3) !important;
+  color-scheme: dark;
+}
+
+/* File input styling */
+input[type="file"] {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8)) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 120, 73, 0.3) !important;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+}
+
+input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #ff7849, #ff6b9d);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  font-weight: 600;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: linear-gradient(135deg, #ff6b9d, #c44569);
+}
+
+/* Search input specific styling */
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1rem;
+  width: 1rem;
+  background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 16 16'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/contain no-repeat;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+input[type="search"]::-webkit-search-cancel-button:hover {
+  opacity: 1;
+}
+
+
+/* Force dark theme for all select dropdowns in modals and forms */
+.modal select,
+form select,
+div[class*="Modal"] select,
+div[class*="modal"] select {
+  background-color: #1e293b !important;
+  color: white !important;
+}
+
+/* Ensure dropdown menus have dark background */
+select::-ms-expand {
+  display: none;
+}
+
+/* Firefox specific dropdown styling */
+@-moz-document url-prefix() {
+  select {
+    background-color: #1e293b !important;
+    color: white !important;
+  }
+  
+  select option {
+    background-color: #1e293b !important;
+    color: white !important;
+  }
+}
+
+/* WebKit/Chrome specific dropdown styling */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  select {
+    background-color: #1e293b !important;
+  }
+  
+  select option {
+    background-color: #1e293b !important;
+    color: white !important;
+  }
+}
+
+/* Ensure no white backgrounds on any form elements */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  color: white !important;
+}
+
+/* Remove any default browser styling that might cause white backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: #1e293b !important;
+  background-image: none !important;
+}
+
+
+/* ========================================
+   THEME SYSTEM
+   ======================================== */
+
+/* Warm Theme (Default) */
+:root,
+.theme-warm {
+  --primary-gradient: linear-gradient(135deg, #ff7849 0%, #ff6b9d 25%, #c44569 50%, #546de5 75%, #3dc1d3 100%);
+  --primary-color: #ff7849;
+  --secondary-color: #ff6b9d;
+  --accent-color: #3dc1d3;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(255, 120, 73, 0.3);
+  --success-color: #3dc1d3;
+  --warning-color: #ff7849;
+  --error-color: #ff6b9d;
+}
+
+/* Cool Theme */
+.theme-cool {
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #6366f1 50%, #06b6d4 75%, #10b981 100%);
+  --primary-color: #3b82f6;
+  --secondary-color: #8b5cf6;
+  --accent-color: #06b6d4;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(59, 130, 246, 0.3);
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+}
+
+/* Dark Theme */
+.theme-dark {
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --primary-color: #6366f1;
+  --secondary-color: #8b5cf6;
+  --accent-color: #a855f7;
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(99, 102, 241, 0.3);
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+}
+
+/* Light Theme */
+.theme-light {
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  --primary-color: #3b82f6;
+  --secondary-color: #8b5cf6;
+  --accent-color: #ec4899;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.8);
+  --text-muted: rgba(15, 23, 42, 0.6);
+  --border-color: rgba(59, 130, 246, 0.3);
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+}
+
+/* Apply theme variables to elements */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Update gradient classes to use CSS variables */
+.bg-warm-gradient {
+  background: var(--primary-gradient) !important;
+}
+
+.text-warm-orange {
+  color: var(--primary-color) !important;
+}
+
+.text-warm-teal {
+  color: var(--accent-color) !important;
+}
+
+.text-warm-pink {
+  color: var(--secondary-color) !important;
+}
+
+.border-warm-orange {
+  border-color: var(--border-color) !important;
+}
+
+/* Theme-aware backgrounds */
+.theme-bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.theme-bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.theme-bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.theme-text-primary {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.theme-text-muted {
+  color: var(--text-muted);
+}
+
+/* Light theme specific adjustments */
+.theme-light .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, var(--bg-secondary), var(--bg-tertiary)) !important;
+}
+
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-light .bg-white\/10,
+.theme-light .bg-white\/5 {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* Exclude animations from theme transitions */
+*:not(.animate-spin):not(.animate-pulse):not(.animate-bounce) {
+  transition-property: background-color, border-color, color;
+}
