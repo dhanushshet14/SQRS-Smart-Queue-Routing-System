@@ -121,6 +121,21 @@ export const routingApi = {
     const response = await api.post('/route/reset')
     return response.data
   },
+
+  getResults: async (): Promise<{ results: RoutingResult[] }> => {
+    const response = await api.get('/routing/results')
+    return response.data
+  },
+
+  completeTask: async (routingId: string): Promise<{ message: string; agent: any; routing_result: any }> => {
+    const response = await api.post(`/routing/${routingId}/complete`)
+    return response.data
+  },
+
+  completeAllTasks: async (): Promise<{ message: string; completed_count: number }> => {
+    const response = await api.post('/routing/complete-all')
+    return response.data
+  },
 }
 
 // Analytics API

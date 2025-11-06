@@ -8,6 +8,8 @@ import Settings from './Settings'
 import AddCustomerModal from './AddCustomerModal'
 import ConversationSummaryModal from './ConversationSummaryModal'
 import FeedbackFormModal from './FeedbackFormModal'
+import ConversationTimer from './ConversationTimer'
+import TimeNotificationModal from './TimeNotificationModal'
 import { useCustomers, useAgents, useRouting, useAnalytics, useAutoRefresh } from '../hooks/useApi'
 import { Customer, Agent, RoutingResult } from '../types'
 
@@ -48,10 +50,20 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
   const [currentRoutingId, setCurrentRoutingId] = React.useState<string>('')
   const [notification, setNotification] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
+  // Conversation timer states
+  const [showTimeNotification, setShowTimeNotification] = React.useState(false)
+  const [timeNotificationData, setTimeNotificationData] = React.useState<{
+    type: 'warning' | 'expired'
+    routingId: string
+    customerName: string
+    agentName: string
+    timeRemaining: number
+  } | null>(null)
+
   // API hooks
   const { customers, loading: customersLoading, refetch: refetchCustomers } = useCustomers()
   const { agents, availableCount, loading: agentsLoading, refetch: refetchAgents } = useAgents()
-  const { routingResults, loading: routingLoading, performAutoRouting, resetQueue } = useRouting()
+  const { routingResults, loading: routingLoading, performAutoRouting, resetQueue, completeTask, completeAllTasks, refetch: refetchRoutingResults } = useRouting()
   const { metrics, loading: metricsLoading, refetch: refetchMetrics } = useAnalytics()
 
   // Auto-refresh data every 30 seconds
@@ -59,6 +71,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
     refetchCustomers()
     refetchAgents()
     refetchMetrics()
+    refetchRoutingResults()
   }, 30000)
 
   React.useEffect(() => {
@@ -73,13 +86,28 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
 
   const handleAutoRoute = async () => {
     try {
+      console.log('🔄 Starting auto routing...')
+      console.log(`📊 Current state: ${customers.length} customers, ${availableCount} available agents`)
+
       const response = await performAutoRouting()
-      showNotification(`Successfully routed ${response.results.length} customers!`, 'success')
+      console.log('✅ Auto routing response:', response)
+
+      if (response.results && response.results.length > 0) {
+        showNotification(`Successfully routed ${response.results.length} customers!`, 'success')
+        console.log(`🎯 Routed ${response.results.length} customers`)
+      } else {
+        showNotification(response.message || 'No customers were routed', 'info')
+        console.log('ℹ️ No customers routed:', response.message)
+      }
+
       // Refresh data after routing
+      console.log('🔄 Refreshing data...')
       refetchCustomers()
       refetchAgents()
       refetchMetrics()
+      refetchRoutingResults()
     } catch (error) {
+      console.error('❌ Auto routing error:', error)
       showNotification('Failed to perform auto routing', 'error')
     }
   }
@@ -92,6 +120,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
       refetchCustomers()
       refetchAgents()
       refetchMetrics()
+      refetchRoutingResults()
     } catch (error) {
       showNotification('Failed to reset queue', 'error')
     }
@@ -100,7 +129,26 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
   const handleAddCustomer = async (customerData: any) => {
     try {
       console.log('📤 Adding customer:', customerData)
-      
+      console.log('🔍 Debug - Customer data validation:', {
+        hasName: !!customerData.name,
+        nameLength: customerData.name?.length,
+        priority: customerData.priority,
+        complexity: customerData.issue_complexity
+      })
+
+      // Validate required fields
+      if (!customerData.name || !customerData.name.trim()) {
+        throw new Error('Customer name is required')
+      }
+
+      if (customerData.priority < 1 || customerData.priority > 10) {
+        throw new Error('Priority must be between 1 and 10')
+      }
+
+      if (customerData.issue_complexity < 1 || customerData.issue_complexity > 5) {
+        throw new Error('Issue complexity must be between 1 and 5')
+      }
+
       const response = await fetch('http://localhost:8000/customers', {
         method: 'POST',
         headers: {
@@ -120,11 +168,105 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
         }, 500)
       } else {
         console.error('❌ Error response:', data)
-        throw new Error(data.error || 'Failed to add customer')
+        const errorMessage = data.error || data.detail || 'Failed to add customer'
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error('❌ Error adding customer:', error)
-      showNotification('Failed to add customer', 'error')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add customer'
+      showNotification(errorMessage, 'error')
+      throw error
+    }
+  }
+
+  // Conversation timer handlers
+  const handleTimeWarning = (routingId: string, timeRemaining: number) => {
+    const routingResult = routingResults.find(r => r.id === routingId)
+    if (routingResult) {
+      setTimeNotificationData({
+        type: 'warning',
+        routingId,
+        customerName: routingResult.customer_name || 'Customer',
+        agentName: routingResult.agent_name || 'Agent',
+        timeRemaining
+      })
+      setShowTimeNotification(true)
+
+      // Play notification sound
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT')
+        audio.play().catch(() => { }) // Ignore errors if audio fails
+      } catch (e) {
+        // Ignore audio errors
+      }
+    }
+  }
+
+  const handleTimeExpired = (routingId: string) => {
+    const routingResult = routingResults.find(r => r.id === routingId)
+    if (routingResult) {
+      setTimeNotificationData({
+        type: 'expired',
+        routingId,
+        customerName: routingResult.customer_name || 'Customer',
+        agentName: routingResult.agent_name || 'Agent',
+        timeRemaining: 0
+      })
+      setShowTimeNotification(true)
+
+      // Play urgent notification sound
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT')
+        audio.play().catch(() => { })
+      } catch (e) {
+        // Ignore audio errors
+      }
+    }
+  }
+
+  const handleEndConversation = async (routingId: string) => {
+    try {
+      const response = await completeTask(routingId)
+
+      if (response.routing_result?.conversation_summary) {
+        setCurrentSummary(response.routing_result.conversation_summary)
+        setCurrentRoutingId(routingId)
+        setShowSummary(true)
+      }
+
+      showNotification('Conversation ended successfully!', 'success')
+      setShowTimeNotification(false)
+      refetchAgents()
+      refetchCustomers()
+      refetchMetrics()
+    } catch (error) {
+      showNotification('Failed to end conversation', 'error')
+    }
+  }
+
+  const handleSendSMS = async () => {
+    if (!timeNotificationData) return
+
+    try {
+      const response = await fetch(`http://localhost:8000/conversation/${timeNotificationData.routingId}/send-sms-alert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: timeNotificationData.type
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        showNotification(`SMS alert sent to ${timeNotificationData.customerName}`, 'success')
+      } else {
+        throw new Error(data.error || 'Failed to send SMS')
+      }
+    } catch (error) {
+      console.error('SMS send error:', error)
       throw error
     }
   }
@@ -189,28 +331,27 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {/* System Status */}
               <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
-                <div className={`h-2 w-2 rounded-full animate-pulse ${
-                  metrics?.model_info.model_loaded ? 'bg-rs-high' : 'bg-rs-medium'
-                }`}></div>
+                <div className={`h-2 w-2 rounded-full animate-pulse ${metrics?.model_info.model_loaded ? 'bg-rs-high' : 'bg-rs-medium'
+                  }`}></div>
                 <span className="text-sm text-white">
                   {metrics?.model_info.model_loaded ? 'AI Engine Active' : 'Fallback Mode'}
                 </span>
               </div>
-              
+
               {/* User Menu */}
               <div className="flex items-center space-x-3">
-                <button 
+                <button
                   onClick={() => setShowSettings(true)}
                   className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all duration-300"
                 >
                   <SettingsIcon className="h-5 w-5" />
                 </button>
-                
-                <button 
+
+                <button
                   onClick={() => setShowUserProfile(true)}
                   className="flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 text-white hover:bg-white/20 transition-all duration-300"
                 >
@@ -221,7 +362,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                 </button>
 
                 {onLogout && (
-                  <button 
+                  <button
                     onClick={onLogout}
                     className="p-2 bg-red-500/20 backdrop-blur-md rounded-xl text-red-300 hover:bg-red-500/30 transition-all duration-300"
                   >
@@ -271,19 +412,19 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
             whileTap={{ scale: 0.95 }}
             onClick={async () => {
               try {
-                const response = await fetch('http://localhost:8000/routing/complete-all', {
-                  method: 'POST'
-                })
-                const data = await response.json()
-                showNotification(data.message, 'success')
+                const response = await completeAllTasks()
+                showNotification(`Completed ${response.completed_count} tasks!`, 'success')
                 refetchAgents()
+                refetchCustomers()
+                refetchMetrics()
               } catch (error) {
                 showNotification('Failed to complete tasks', 'error')
               }
             }}
-            className="bg-green-500/20 backdrop-blur-md text-green-300 font-semibold px-6 py-3 rounded-2xl border border-green-500/30 hover:bg-green-500/30 transition-all duration-300"
+            disabled={routingLoading || routingResults.filter(r => r.status === 'active').length === 0}
+            className="bg-green-500/20 backdrop-blur-md text-green-300 font-semibold px-6 py-3 rounded-2xl border border-green-500/30 hover:bg-green-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Complete All Tasks
+            Complete All Tasks ({routingResults.filter(r => r.status === 'active').length})
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -315,7 +456,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                   {customers.length} waiting
                 </span>
               </div>
-              
+
               <div className="space-y-4">
                 {customersLoading ? (
                   <div className="text-center py-8 text-white/60">
@@ -338,27 +479,25 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="font-semibold text-white">{customer.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          customer.sentiment === 'positive' ? 'bg-sentiment-positive/20 text-sentiment-positive' :
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${customer.sentiment === 'positive' ? 'bg-sentiment-positive/20 text-sentiment-positive' :
                           customer.sentiment === 'negative' ? 'bg-sentiment-negative/20 text-sentiment-negative' :
-                          'bg-sentiment-neutral/20 text-sentiment-neutral'
-                        }`}>
+                            'bg-sentiment-neutral/20 text-sentiment-neutral'
+                          }`}>
                           {customer.sentiment.charAt(0).toUpperCase() + customer.sentiment.slice(1)}
                         </span>
                       </div>
                       <div className="text-sm text-white/70 space-y-1">
                         <p className="flex items-center space-x-2">
-                          <span className={`w-2 h-2 rounded-full ${
-                            customer.issue_type === 'technical_support' ? 'bg-warm-orange' :
+                          <span className={`w-2 h-2 rounded-full ${customer.issue_type === 'technical_support' ? 'bg-warm-orange' :
                             customer.issue_type === 'billing' ? 'bg-warm-teal' :
-                            customer.issue_type === 'sales' ? 'bg-warm-pink' :
-                            'bg-warm-purple'
-                          }`}></span>
+                              customer.issue_type === 'sales' ? 'bg-warm-pink' :
+                                'bg-warm-purple'
+                            }`}></span>
                           <span>{customer.issue_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                         </p>
                         <p>
-                          Tier: {customer.tier.charAt(0).toUpperCase() + customer.tier.slice(1)} • 
-                          {customer.channel.charAt(0).toUpperCase() + customer.channel.slice(1)} • 
+                          Tier: {customer.tier.charAt(0).toUpperCase() + customer.tier.slice(1)} •
+                          {customer.channel.charAt(0).toUpperCase() + customer.channel.slice(1)} •
                           Priority: {customer.priority}
                         </p>
                         <p className="text-warm-orange">
@@ -389,7 +528,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                   {availableCount} available
                 </span>
               </div>
-              
+
               <div className="space-y-4">
                 {agentsLoading ? (
                   <div className="text-center py-8 text-white/60">
@@ -412,11 +551,10 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="font-semibold text-white">{agent.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          agent.status === 'available' ? 'bg-status-available/20 text-status-available' :
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${agent.status === 'available' ? 'bg-status-available/20 text-status-available' :
                           agent.status === 'busy' ? 'bg-status-busy/20 text-status-busy' :
-                          'bg-status-offline/20 text-status-offline'
-                        }`}>
+                            'bg-status-offline/20 text-status-offline'
+                          }`}>
                           {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                         </span>
                       </div>
@@ -426,8 +564,8 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                         <div className="flex items-center space-x-2">
                           <span>Workload: {agent.current_workload}/{agent.max_concurrent}</span>
                           <div className="flex-1 bg-white/10 rounded-full h-2">
-                            <div 
-                              className="bg-warm-teal h-2 rounded-full transition-all duration-300" 
+                            <div
+                              className="bg-warm-teal h-2 rounded-full transition-all duration-300"
                               style={{ width: `${(agent.current_workload / agent.max_concurrent) * 100}%` }}
                             ></div>
                           </div>
@@ -457,7 +595,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                   Ready
                 </span>
               </div>
-              
+
               <div className="space-y-4">
                 {routingResults.length === 0 ? (
                   <div className="text-center py-12">
@@ -490,22 +628,20 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                             <span className="text-warm-teal">{result.agent_name || 'Agent'}</span>
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          result.routing_score >= 0.8 ? 'bg-rs-high/20 text-rs-high' :
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${result.routing_score >= 0.8 ? 'bg-rs-high/20 text-rs-high' :
                           result.routing_score >= 0.6 ? 'bg-rs-medium/20 text-rs-medium' :
-                          'bg-rs-low/20 text-rs-low'
-                        }`}>
+                            'bg-rs-low/20 text-rs-low'
+                          }`}>
                           {Math.round(result.routing_score * 100)}%
                         </span>
                       </div>
                       <div className="text-sm text-white/70 space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs">Score: {result.routing_score.toFixed(3)}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            result.status === 'completed' ? 'bg-green-500/20 text-green-300' :
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${result.status === 'completed' ? 'bg-green-500/20 text-green-300' :
                             result.status === 'active' ? 'bg-blue-500/20 text-blue-300' :
-                            'bg-gray-500/20 text-gray-300'
-                          }`}>
+                              'bg-gray-500/20 text-gray-300'
+                            }`}>
                             {result.status}
                           </span>
                         </div>
@@ -518,25 +654,24 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Complete Task Button */}
                       {result.status === 'active' && (
                         <button
                           onClick={async () => {
                             try {
-                              const response = await fetch(`http://localhost:8000/routing/${result.id}/complete`, {
-                                method: 'POST'
-                              })
-                              const data = await response.json()
-                              
-                              if (data.conversation_summary) {
-                                setCurrentSummary(data.conversation_summary)
+                              const response = await completeTask(result.id)
+
+                              if (response.routing_result?.conversation_summary) {
+                                setCurrentSummary(response.routing_result.conversation_summary)
                                 setCurrentRoutingId(result.id)
                                 setShowSummary(true)
                               }
-                              
+
                               showNotification('Task completed! Agent is now available.', 'success')
                               refetchAgents()
+                              refetchCustomers()
+                              refetchMetrics()
                             } catch (error) {
                               showNotification('Failed to complete task', 'error')
                             }
@@ -566,7 +701,7 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
               <BarChart3 className="h-8 w-8 text-warm-purple" />
               <span>Performance Analytics</span>
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
@@ -616,15 +751,15 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
       </main>
 
       {/* User Profile Modal */}
-      <UserProfile 
-        isOpen={showUserProfile} 
-        onClose={() => setShowUserProfile(false)} 
+      <UserProfile
+        isOpen={showUserProfile}
+        onClose={() => setShowUserProfile(false)}
       />
 
       {/* Settings Modal */}
-      <Settings 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
+      <Settings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
 
       {/* Add Customer Modal */}
@@ -638,30 +773,31 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
       <ConversationSummaryModal
         isOpen={showSummary}
         onClose={() => setShowSummary(false)}
-        summary={currentSummary}
-        onSubmitFeedback={() => setShowFeedback(true)}
+        conversation={currentSummary}
+        agent={currentSummary ? { name: currentSummary.agent_name } : null}
       />
 
       {/* Feedback Form Modal */}
       <FeedbackFormModal
         isOpen={showFeedback}
         onClose={() => setShowFeedback(false)}
-        routingId={currentRoutingId}
-        customerName={currentSummary?.customer_name || ''}
-        agentName={currentSummary?.agent_name || ''}
-        onSubmit={async (feedback) => {
-          try {
-            await fetch(`http://localhost:8000/routing/${currentRoutingId}/feedback`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(feedback)
-            })
-            showNotification('Thank you for your feedback!', 'success')
-          } catch (error) {
-            showNotification('Failed to submit feedback', 'error')
-          }
-        }}
+        conversationId={currentRoutingId}
+        agent={currentSummary ? { name: currentSummary.agent_name } : null}
       />
+
+      {/* Time Notification Modal */}
+      {timeNotificationData && (
+        <TimeNotificationModal
+          isOpen={showTimeNotification}
+          onClose={() => setShowTimeNotification(false)}
+          type={timeNotificationData.type}
+          timeRemaining={timeNotificationData.timeRemaining}
+          customerName={timeNotificationData.customerName}
+          agentName={timeNotificationData.agentName}
+          onEndConversation={() => handleEndConversation(timeNotificationData.routingId)}
+          onSendSMS={handleSendSMS}
+        />
+      )}
 
       {/* Notification */}
       {notification && (
@@ -669,11 +805,10 @@ const SmartQueueDashboard: React.FC<SmartQueueDashboardProps> = ({ onLogout }) =
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -50 }}
-          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-2xl backdrop-blur-md border shadow-lg ${
-            notification.type === 'success' ? 'bg-green-500/20 border-green-500/30 text-green-300' :
+          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-2xl backdrop-blur-md border shadow-lg ${notification.type === 'success' ? 'bg-green-500/20 border-green-500/30 text-green-300' :
             notification.type === 'error' ? 'bg-red-500/20 border-red-500/30 text-red-300' :
-            'bg-blue-500/20 border-blue-500/30 text-blue-300'
-          }`}
+              'bg-blue-500/20 border-blue-500/30 text-blue-300'
+            }`}
         >
           {notification.message}
         </motion.div>

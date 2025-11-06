@@ -430,21 +430,93 @@ class DataStore:
     def get_available_agents(self) -> List[Agent]:
         """Get agents available for routing"""
         agents = self.get_agents()  # This will get from database
-        return [agent for agent in agents 
-                if agent.status == "available" and agent.current_workload < agent.max_concurrent]
+        print(f"🔍 Debug get_available_agents:")
+        print(f"   Total agents: {len(agents)}")
+        
+        available_agents = []
+        for agent in agents:
+            is_available = agent.status == "available"
+            has_capacity = agent.current_workload < agent.max_concurrent
+            print(f"   Agent {agent.name}: status={agent.status}, workload={agent.current_workload}/{agent.max_concurrent}, available={is_available}, capacity={has_capacity}")
+            
+            if is_available and has_capacity:
+                available_agents.append(agent)
+        
+        print(f"   Available agents for routing: {len(available_agents)}")
+        return available_agents
     
     # Routing results operations
     def add_routing_result(self, result: RoutingResult) -> RoutingResult:
         """Add routing result"""
+        # Add to memory immediately for fast response
         self.routing_results[result.id] = result
+        
+        # Save to database asynchronously (non-blocking)
+        try:
+            self.db.add_routing_result(result)
+        except Exception as e:
+            print(f"⚠️ Database save failed (routing result in memory): {e}")
+        
         return result
     
     def get_routing_results(self) -> List[RoutingResult]:
         """Get all routing results"""
-        return list(self.routing_results.values())
+        try:
+            # Try to get from database first
+            db_results = self.db.get_routing_results()
+            
+            # Update memory cache
+            for result in db_results:
+                self.routing_results[result.id] = result
+            
+            # Also include in-memory results that might not be in DB yet
+            all_results = {}
+            for result in db_results:
+                all_results[result.id] = result
+            
+            # Add in-memory results
+            for result_id, result in self.routing_results.items():
+                if result_id not in all_results:
+                    all_results[result_id] = result
+            
+            # Update memory cache
+            self.routing_results.update(all_results)
+            
+            return list(all_results.values())
+        except Exception as e:
+            print(f"❌ Error getting routing results: {e}")
+            # Return only in-memory results if database fails
+            return list(self.routing_results.values())
+    
+    def update_routing_result_status(self, routing_id: str, status: str) -> bool:
+        """Update routing result status"""
+        try:
+            # Update in memory
+            if routing_id in self.routing_results:
+                self.routing_results[routing_id].status = status
+            
+            # Update in database
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE routing_results SET status = ?, completed_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ''', (status, routing_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"❌ Error updating routing result status: {e}")
+            return False
     
     def clear_routing_results(self):
         """Clear all routing results (for reset)"""
+        # Clear from database
+        try:
+            self.db.clear_routing_results()
+        except Exception as e:
+            print(f"⚠️ Database clear failed: {e}")
+        
+        # Clear from memory
         self.routing_results.clear()
     
     def update_wait_times(self):

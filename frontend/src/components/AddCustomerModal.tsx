@@ -59,6 +59,7 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onClose, on
     setIsSubmitting(true)
     
     try {
+      console.log('🚀 Submitting customer data:', formData)
       await onSubmit(formData)
       
       // Reset form
@@ -74,7 +75,8 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onClose, on
       
       onClose()
     } catch (error) {
-      console.error('Error adding customer:', error)
+      console.error('❌ Error adding customer:', error)
+      // Don't close modal on error so user can retry
     } finally {
       setIsSubmitting(false)
     }

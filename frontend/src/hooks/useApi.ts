@@ -61,6 +61,17 @@ export const useRouting = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchRoutingResults = useCallback(async () => {
+    try {
+      const data = await routingApi.getResults()
+      setRoutingResults(data.results)
+      setError(null)
+    } catch (err) {
+      setError('Failed to fetch routing results')
+      console.error('Error fetching routing results:', err)
+    }
+  }, [])
+
   const performAutoRouting = useCallback(async () => {
     try {
       setLoading(true)
@@ -92,12 +103,51 @@ export const useRouting = () => {
     }
   }, [])
 
+  const completeTask = useCallback(async (routingId: string) => {
+    try {
+      setError(null)
+      const response = await routingApi.completeTask(routingId)
+      // Refresh routing results after completion
+      await fetchRoutingResults()
+      return response
+    } catch (err) {
+      setError('Failed to complete task')
+      console.error('Error completing task:', err)
+      throw err
+    }
+  }, [fetchRoutingResults])
+
+  const completeAllTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await routingApi.completeAllTasks()
+      // Refresh routing results after completion
+      await fetchRoutingResults()
+      return response
+    } catch (err) {
+      setError('Failed to complete all tasks')
+      console.error('Error completing all tasks:', err)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchRoutingResults])
+
+  // Fetch routing results on mount
+  useEffect(() => {
+    fetchRoutingResults()
+  }, [fetchRoutingResults])
+
   return {
     routingResults,
     loading,
     error,
     performAutoRouting,
     resetQueue,
+    completeTask,
+    completeAllTasks,
+    refetch: fetchRoutingResults,
   }
 }
 

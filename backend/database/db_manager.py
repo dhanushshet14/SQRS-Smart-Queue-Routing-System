@@ -86,6 +86,8 @@ class DatabaseManager:
                     id TEXT PRIMARY KEY,
                     customer_id TEXT NOT NULL,
                     agent_id TEXT NOT NULL,
+                    customer_name TEXT,
+                    agent_name TEXT,
                     routing_score REAL NOT NULL,
                     reasoning TEXT,  -- JSON array
                     status TEXT DEFAULT 'pending',
@@ -131,6 +133,17 @@ class DatabaseManager:
                 CREATE INDEX IF NOT EXISTS idx_routing_status 
                 ON routing_results(status)
             ''')
+            
+            # Add missing columns to existing tables (migration)
+            try:
+                cursor.execute('ALTER TABLE routing_results ADD COLUMN customer_name TEXT')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            
+            try:
+                cursor.execute('ALTER TABLE routing_results ADD COLUMN agent_name TEXT')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
             
             conn.commit()
             print("✅ Database tables and indexes initialized successfully")
@@ -367,10 +380,12 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute('''
                     INSERT INTO routing_results (
-                        id, customer_id, agent_id, routing_score, reasoning, status
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        id, customer_id, agent_id, customer_name, agent_name, 
+                        routing_score, reasoning, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     result.id, result.customer_id, result.agent_id,
+                    result.customer_name, result.agent_name,
                     result.routing_score, json.dumps(result.reasoning), result.status
                 ))
                 conn.commit()
@@ -394,6 +409,8 @@ class DatabaseManager:
                         id=row['id'],
                         customer_id=row['customer_id'],
                         agent_id=row['agent_id'],
+                        customer_name=row['customer_name'],
+                        agent_name=row['agent_name'],
                         routing_score=row['routing_score'],
                         reasoning=json.loads(row['reasoning']),
                         status=row['status'],
@@ -405,6 +422,21 @@ class DatabaseManager:
         except Exception as e:
             print(f"❌ Error getting routing results: {e}")
             return []
+    
+    def update_routing_result_status(self, routing_id: str, status: str) -> bool:
+        """Update routing result status"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE routing_results SET status = ?, completed_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ''', (status, routing_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"❌ Error updating routing result status: {e}")
+            return False
     
     def clear_routing_results(self) -> bool:
         """Clear all routing results"""

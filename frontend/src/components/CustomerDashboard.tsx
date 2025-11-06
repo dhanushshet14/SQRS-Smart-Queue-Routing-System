@@ -42,6 +42,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onLogout })
   const [agents, setAgents] = React.useState<Agent[]>([])
   const [customers, setCustomers] = React.useState<Customer[]>([])
   const [querySubmitted, setQuerySubmitted] = React.useState(false)
+  
+  // Debug: Log user object on component mount
+  React.useEffect(() => {
+    console.log('🔍 CustomerDashboard - User object:', user)
+    console.log('🔍 CustomerDashboard - User has email:', !!user?.email)
+    console.log('🔍 CustomerDashboard - User has name:', !!user?.name)
+  }, [user])
   const [queuePosition, setQueuePosition] = React.useState(0)
   const [estimatedWait, setEstimatedWait] = React.useState(0)
   const [showQueryForm, setShowQueryForm] = React.useState(false)
@@ -168,6 +175,34 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onLogout })
 
   const handleSubmitQuery = async () => {
     try {
+      // Debug: Log user object
+      console.log('🔍 Debug - User object:', user)
+      console.log('🔍 Debug - Query data:', queryData)
+
+      // Validate required fields
+      if (!queryData.issue_description.trim()) {
+        alert('Please describe your issue before submitting.')
+        return
+      }
+
+      if (!user?.email) {
+        alert('User email is required. Please log in again.')
+        console.error('❌ Missing user email:', user)
+        return
+      }
+
+      if (!user?.name) {
+        alert('User name is required. Please log in again.')
+        console.error('❌ Missing user name:', user)
+        return
+      }
+
+      console.log('🚀 Submitting query:', {
+        customer_email: user.email,
+        customer_name: user.name,
+        ...queryData
+      })
+
       const response = await fetch('http://localhost:8000/customer/submit-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,6 +214,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onLogout })
       })
 
       const data = await response.json()
+      console.log('📥 Query response:', data)
 
       if (response.ok) {
         setQuerySubmitted(true)
@@ -197,9 +233,11 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onLogout })
           }, 30000) // 30 seconds for demo
         }, 10000) // 10 seconds for demo
       } else {
-        alert('Failed to submit query: ' + data.error)
+        console.error('❌ Query submission failed:', data)
+        alert('Failed to submit query: ' + (data.error || 'Unknown error'))
       }
     } catch (error) {
+      console.error('❌ Query submission error:', error)
       alert('Failed to submit query. Please try again.')
     }
   }
@@ -411,8 +449,8 @@ For support, contact: support@sqrs.com
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all ${activeTab === tab.id
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                       }`}
                   >
                     <tab.icon className="h-4 w-4" />
@@ -501,8 +539,25 @@ For support, contact: support@sqrs.com
                 {!querySubmitted ? (
                   <div className="space-y-4">
                     <p className="text-white/70">Need help? Submit a support query and get matched with the best agent for your needs.</p>
+                    
+                    {/* Debug info for user validation */}
+                    {(!user?.email || !user?.name) && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
+                        <p className="text-red-300 text-sm">
+                          ⚠️ User validation issue: {!user?.email ? 'Missing email' : ''} {!user?.name ? 'Missing name' : ''}
+                        </p>
+                        <p className="text-red-200 text-xs mt-1">Please log out and log in again.</p>
+                      </div>
+                    )}
+                    
                     <button
-                      onClick={() => setShowQueryForm(true)}
+                      onClick={() => {
+                        if (!user?.email || !user?.name) {
+                          alert('Please log out and log in again. User information is incomplete.')
+                          return
+                        }
+                        setShowQueryForm(true)
+                      }}
                       className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105"
                     >
                       Start New Query
@@ -565,8 +620,8 @@ For support, contact: support@sqrs.com
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="text-white font-medium">{conversation.issue}</h4>
                         <span className={`px-2 py-1 rounded-full text-xs ${conversation.status === 'Resolved'
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-yellow-500/20 text-yellow-300'
+                          ? 'bg-green-500/20 text-green-300'
+                          : 'bg-yellow-500/20 text-yellow-300'
                           }`}>
                           {conversation.status}
                         </span>
@@ -766,8 +821,8 @@ For support, contact: support@sqrs.com
                       {(querySubmitted || customer.name === user.name) ? (
                         <div className="text-right space-y-2">
                           <div className={`px-3 py-1 rounded-full text-xs font-medium ${customer.priority >= 8 ? 'bg-red-500/20 text-red-300' :
-                              customer.priority >= 5 ? 'bg-yellow-500/20 text-yellow-300' :
-                                'bg-green-500/20 text-green-300'
+                            customer.priority >= 5 ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-green-500/20 text-green-300'
                             }`}>
                             Priority {customer.priority}
                           </div>
@@ -775,8 +830,8 @@ For support, contact: support@sqrs.com
                           <div className="text-white/70 text-xs">
                             <div>Wait: {Math.floor(customer.wait_time / 60)}m {customer.wait_time % 60}s</div>
                             <div className={`${customer.sentiment === 'positive' ? 'text-green-400' :
-                                customer.sentiment === 'negative' ? 'text-red-400' :
-                                  'text-yellow-400'
+                              customer.sentiment === 'negative' ? 'text-red-400' :
+                                'text-yellow-400'
                               }`}>
                               {customer.sentiment}
                             </div>
@@ -834,8 +889,8 @@ For support, contact: support@sqrs.com
                       </div>
                       <div className="text-right">
                         <span className={`px-3 py-1 rounded-full text-sm ${conversation.status === 'Resolved'
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-yellow-500/20 text-yellow-300'
+                          ? 'bg-green-500/20 text-green-300'
+                          : 'bg-yellow-500/20 text-yellow-300'
                           }`}>
                           {conversation.status}
                         </span>
@@ -1126,8 +1181,8 @@ For support, contact: support@sqrs.com
                       <div className="flex items-center space-x-8 text-sm">
                         <div className="text-center">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${agent.status === 'available' ? 'bg-green-500/20 text-green-300' :
-                              agent.status === 'busy' ? 'bg-yellow-500/20 text-yellow-300' :
-                                'bg-gray-500/20 text-gray-300'
+                            agent.status === 'busy' ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-gray-500/20 text-gray-300'
                             }`}>
                             {agent.status}
                           </span>
@@ -1172,8 +1227,8 @@ For support, contact: support@sqrs.com
                             <div className="w-full bg-white/10 rounded-full h-1">
                               <div
                                 className={`h-1 rounded-full ${(level as number) >= 0.8 ? 'bg-green-500' :
-                                    (level as number) >= 0.6 ? 'bg-yellow-500' :
-                                      'bg-red-500'
+                                  (level as number) >= 0.6 ? 'bg-yellow-500' :
+                                    'bg-red-500'
                                   }`}
                                 style={{ width: `${(level as number) * 100}%` }}
                               ></div>
@@ -1209,8 +1264,8 @@ For support, contact: support@sqrs.com
                       key={type.value}
                       onClick={() => setQueryData({ ...queryData, issue_type: type.value })}
                       className={`p-3 rounded-xl border text-left transition-all ${queryData.issue_type === type.value
-                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                          : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                        : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
                         }`}
                     >
                       <div className="flex items-center space-x-2">
@@ -1223,13 +1278,19 @@ For support, contact: support@sqrs.com
               </div>
 
               <div>
-                <label className="text-white font-medium block mb-2">Describe Your Issue</label>
+                <label className="text-white font-medium block mb-2">Describe Your Issue *</label>
                 <textarea
                   value={queryData.issue_description}
                   onChange={(e) => setQueryData({ ...queryData, issue_description: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 h-32 resize-none"
+                  className={`w-full bg-white/10 border rounded-xl px-4 py-3 text-white placeholder-white/50 h-32 resize-none ${
+                    queryData.issue_description.trim() ? 'border-white/20' : 'border-red-500/50'
+                  }`}
                   placeholder="Please describe your issue in detail..."
+                  required
                 />
+                {!queryData.issue_description.trim() && (
+                  <p className="text-red-400 text-sm mt-1">Issue description is required</p>
+                )}
               </div>
 
               <div>
@@ -1240,8 +1301,8 @@ For support, contact: support@sqrs.com
                       key={channel.value}
                       onClick={() => setQueryData({ ...queryData, channel: channel.value })}
                       className={`p-4 rounded-xl border transition-all ${queryData.channel === channel.value
-                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                          : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                        : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
                         }`}
                     >
                       <channel.icon className="h-6 w-6 mx-auto mb-2" />
@@ -1276,7 +1337,8 @@ For support, contact: support@sqrs.com
                 </button>
                 <button
                   onClick={handleSubmitQuery}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all"
+                  disabled={!queryData.issue_description.trim() || !user?.email || !user?.name}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Submit Query
                 </button>

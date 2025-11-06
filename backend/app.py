@@ -325,16 +325,35 @@ async def auto_route():
         
         print(f"📊 Found {len(customers)} customers and {len(agents)} available agents")
         
+        # Debug: Print customer and agent details
+        if customers:
+            print(f"📋 Customers in queue:")
+            for i, customer in enumerate(customers[:3]):  # Show first 3
+                print(f"   {i+1}. {customer.name} - {customer.issue_type} (Priority: {customer.priority})")
+        
+        if agents:
+            print(f"👥 Available agents:")
+            for i, agent in enumerate(agents[:3]):  # Show first 3
+                print(f"   {i+1}. {agent.name} - {agent.specialty} (Workload: {agent.current_workload}/{agent.max_concurrent})")
+        
         if not customers:
+            print("⚠️ No customers in queue to route")
             return {"message": "No customers in queue", "results": []}
         
         if not agents:
+            print("⚠️ No agents available for routing")
             return {"message": "No agents available", "results": []}
         
         # Perform routing
         print("🤖 Performing AI routing...")
         routing_results = app.state.routing_engine.route_customers(customers, agents)
         print(f"✅ Generated {len(routing_results)} routing results")
+        
+        # Debug: Print routing results
+        if routing_results:
+            print(f"🎯 Routing results:")
+            for i, result in enumerate(routing_results):
+                print(f"   {i+1}. {result.customer_name} → {result.agent_name} (Score: {result.routing_score:.3f})")
         
         # Store results and update agent workloads
         for result in routing_results:
@@ -343,16 +362,18 @@ async def auto_route():
             agent = app.state.data_store.get_agent(result.agent_id)
             if agent:
                 agent.current_workload += 1
+                print(f"📈 Updated {agent.name} workload: {agent.current_workload}/{agent.max_concurrent}")
                 # Update agent status in database
                 app.state.data_store.db.update_agent_workload(agent.id, agent.current_workload)
             # Remove customer from queue (update status to 'routed')
             app.state.data_store.db.update_customer_status(result.customer_id, 'routed')
             app.state.data_store.remove_customer(result.customer_id)
+            print(f"🚀 Routed customer {result.customer_name} and removed from queue")
         
         # Get routing statistics
         stats = app.state.routing_engine.get_routing_statistics(routing_results)
         
-        print(f"🎯 Routing completed successfully!")
+        print(f"🎉 Routing completed successfully! {len(routing_results)} customers routed.")
         
         return {
             "results": routing_results,
@@ -398,6 +419,17 @@ async def manual_route(assignment: ManualAssignment):
     return {"result": result, "message": "Manual routing completed"}
 
 
+@app.get("/routing/results")
+async def get_routing_results():
+    """Get all current routing results"""
+    try:
+        routing_results = app.state.data_store.get_routing_results()
+        return {"results": routing_results}
+    except Exception as e:
+        print(f"❌ Error getting routing results: {str(e)}")
+        return {"error": f"Failed to get routing results: {str(e)}"}, 500
+
+
 @app.post("/route/reset")
 async def reset_queue():
     """Resets all assignments and returns customers to queue"""
@@ -407,6 +439,10 @@ async def reset_queue():
     # Reset agent workloads
     for agent in app.state.data_store.get_agents():
         agent.current_workload = 0
+        agent.status = "available"
+        # Update in database
+        app.state.data_store.db.update_agent_workload(agent.id, 0)
+        app.state.data_store.db.update_agent_status(agent.id, "available")
     
     # Reinitialize mock customers
     app.state.data_store._create_mock_customers()
@@ -717,12 +753,26 @@ async def complete_routing_task(routing_id: str):
         if not routing_result:
             return {"error": "Routing result not found"}, 404
         
-        # Get customer and agent details
-        customer = app.state.data_store.get_customer(routing_result.customer_id)
+        # Get agent details (customer may have been removed from queue)
         agent = app.state.data_store.get_agent(routing_result.agent_id)
         
-        if not customer or not agent:
-            return {"error": "Customer or agent not found"}, 404
+        if not agent:
+            return {"error": "Agent not found"}, 404
+        
+        # Get customer details from routing result or try to fetch
+        customer_name = routing_result.customer_name or "Unknown Customer"
+        customer_issue_type = "technical_support"  # Default fallback
+        customer_tier = "standard"  # Default fallback
+        customer_sentiment = "neutral"  # Default fallback
+        customer_channel = "chat"  # Default fallback
+        
+        # Try to get customer details if still available
+        customer = app.state.data_store.get_customer(routing_result.customer_id)
+        if customer:
+            customer_issue_type = customer.issue_type
+            customer_tier = customer.tier
+            customer_sentiment = customer.sentiment
+            customer_channel = customer.channel
         
         # Generate conversation summary
         duration = random.uniform(5, 25)  # 5-25 minutes
@@ -732,7 +782,7 @@ async def complete_routing_task(routing_id: str):
         # Generate realistic conversation summary based on issue type
         issue_summaries = {
             "technical_support": {
-                "resolution": f"Successfully resolved {customer.issue_type.replace('_', ' ')} issue. Guided customer through troubleshooting steps and verified solution.",
+                "resolution": f"Successfully resolved {customer_issue_type.replace('_', ' ')} issue. Guided customer through troubleshooting steps and verified solution.",
                 "key_points": [
                     "Identified root cause of technical issue",
                     "Provided step-by-step resolution guidance",
@@ -823,20 +873,20 @@ async def complete_routing_task(routing_id: str):
             }
         }
         
-        summary_data = issue_summaries.get(customer.issue_type, issue_summaries["technical_support"])
+        summary_data = issue_summaries.get(customer_issue_type, issue_summaries["technical_support"])
         
         conversation_summary = ConversationSummary(
             routing_id=routing_id,
-            customer_id=customer.id,
+            customer_id=routing_result.customer_id,
             agent_id=agent.id,
-            customer_name=customer.name,
+            customer_name=customer_name,
             agent_name=agent.name,
-            channel=customer.channel,
+            channel=customer_channel,
             start_time=start_time,
             end_time=end_time,
             duration_minutes=round(duration, 1),
-            issue_type=customer.issue_type,
-            issue_description=f"{customer.tier.capitalize()} tier customer with {customer.sentiment} sentiment regarding {customer.issue_type.replace('_', ' ')}",
+            issue_type=customer_issue_type,
+            issue_description=f"{customer_tier.capitalize()} tier customer with {customer_sentiment} sentiment regarding {customer_issue_type.replace('_', ' ')}",
             resolution_summary=summary_data["resolution"],
             key_points=summary_data["key_points"],
             actions_taken=summary_data["actions"],
@@ -849,6 +899,9 @@ async def complete_routing_task(routing_id: str):
         routing_result.conversation_summary = conversation_summary
         routing_result.actual_handling_time = duration
         routing_result.success_outcome = True
+        
+        # Update routing result status in database
+        app.state.data_store.update_routing_result_status(routing_id, 'completed')
         
         # Decrease agent workload
         agent.current_workload = max(0, agent.current_workload - 1)
@@ -928,6 +981,9 @@ async def complete_all_active_tasks():
             if result.status == 'active':
                 result.status = 'completed'
                 
+                # Update routing result status in database
+                app.state.data_store.update_routing_result_status(result.id, 'completed')
+                
                 # Free up the agent
                 agent = app.state.data_store.get_agent(result.agent_id)
                 if agent:
@@ -945,6 +1001,163 @@ async def complete_all_active_tasks():
             "message": f"Completed {completed_count} tasks",
             "completed_count": completed_count
         }
+        
+    except Exception as e:
+        print(f"❌ Error completing all tasks: {str(e)}")
+        return {"error": f"Failed to complete tasks: {str(e)}"}, 500
+
+
+@app.post("/conversation/{routing_id}/send-sms-alert")
+async def send_sms_alert(routing_id: str, alert_data: dict):
+    """Send SMS alert to customer about conversation time limit"""
+    try:
+        # Get the routing result
+        routing_results = app.state.data_store.get_routing_results()
+        routing_result = next((r for r in routing_results if r.id == routing_id), None)
+        
+        if not routing_result:
+            return {"error": "Routing result not found"}, 404
+        
+        # Get customer details
+        customer_name = routing_result.customer_name or "Customer"
+        agent_name = routing_result.agent_name or "Agent"
+        alert_type = alert_data.get("type", "warning")  # 'warning' or 'expired'
+        
+        # Simulate SMS sending (in real implementation, integrate with SMS service like Twilio)
+        sms_message = ""
+        if alert_type == "warning":
+            sms_message = f"Hi {customer_name}, your conversation with {agent_name} has 2 minutes remaining. Please wrap up your discussion. - Smart Queue System"
+        else:
+            sms_message = f"Hi {customer_name}, your 10-minute conversation limit with {agent_name} has been reached. Please end the conversation. - Smart Queue System"
+        
+        # Log SMS for demo (in production, send actual SMS)
+        print(f"📱 SMS Alert Sent:")
+        print(f"   To: Customer {customer_name}")
+        print(f"   Message: {sms_message}")
+        print(f"   Type: {alert_type}")
+        
+        # Store SMS log in routing result
+        if not hasattr(routing_result, 'sms_alerts'):
+            routing_result.sms_alerts = []
+        
+        routing_result.sms_alerts.append({
+            "type": alert_type,
+            "message": sms_message,
+            "sent_at": datetime.now().isoformat(),
+            "status": "sent"
+        })
+        
+        return {
+            "message": "SMS alert sent successfully",
+            "sms_message": sms_message,
+            "alert_type": alert_type,
+            "customer_name": customer_name
+        }
+        
+    except Exception as e:
+        print(f"❌ Error sending SMS alert: {str(e)}")
+        return {"error": f"Failed to send SMS alert: {str(e)}"}, 500
+
+
+@app.get("/conversation/{routing_id}/time-status")
+async def get_conversation_time_status(routing_id: str):
+    """Get conversation time status and check if limits are exceeded"""
+    try:
+        # Get the routing result
+        routing_results = app.state.data_store.get_routing_results()
+        routing_result = next((r for r in routing_results if r.id == routing_id), None)
+        
+        if not routing_result:
+            return {"error": "Routing result not found"}, 404
+        
+        # Calculate time elapsed from routing result timestamp
+        start_time = routing_result.timestamp
+        current_time = datetime.now()
+        
+        # Handle different timestamp formats
+        if isinstance(start_time, str):
+            try:
+                # Try parsing ISO format with timezone
+                start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            except:
+                try:
+                    # Try parsing without timezone
+                    start_time = datetime.fromisoformat(start_time)
+                except:
+                    # Fallback to current time (new conversation)
+                    start_time = current_time
+        
+        # For demo purposes, if conversation is very old, reset to current time
+        time_elapsed = (current_time - start_time).total_seconds()
+        if time_elapsed > 24 * 60 * 60:  # If older than 24 hours, treat as new
+            start_time = current_time
+            time_elapsed = 0
+        time_limit = 10 * 60  # 10 minutes
+        time_remaining = max(0, time_limit - time_elapsed)
+        
+        # Determine status
+        status = "active"
+        if time_elapsed >= time_limit:
+            status = "expired"
+        elif time_elapsed >= 8 * 60:  # 8 minutes - warning threshold
+            status = "warning"
+        
+        return {
+            "routing_id": routing_id,
+            "time_elapsed": int(time_elapsed),
+            "time_remaining": int(time_remaining),
+            "time_limit": time_limit,
+            "status": status,
+            "customer_name": routing_result.customer_name,
+            "agent_name": routing_result.agent_name,
+            "percentage_used": min(100, (time_elapsed / time_limit) * 100)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting conversation time status: {str(e)}")
+        return {"error": f"Failed to get time status: {str(e)}"}, 500
+
+
+@app.post("/conversation/{routing_id}/extend-time")
+async def extend_conversation_time(routing_id: str, extension_data: dict):
+    """Extend conversation time (admin override)"""
+    try:
+        # Get the routing result
+        routing_results = app.state.data_store.get_routing_results()
+        routing_result = next((r for r in routing_results if r.id == routing_id), None)
+        
+        if not routing_result:
+            return {"error": "Routing result not found"}, 404
+        
+        extension_minutes = extension_data.get("extension_minutes", 5)
+        reason = extension_data.get("reason", "Admin override")
+        
+        # Store extension info
+        if not hasattr(routing_result, 'time_extensions'):
+            routing_result.time_extensions = []
+        
+        routing_result.time_extensions.append({
+            "extension_minutes": extension_minutes,
+            "reason": reason,
+            "granted_at": datetime.now().isoformat(),
+            "granted_by": "admin"
+        })
+        
+        print(f"⏰ Time extension granted:")
+        print(f"   Routing ID: {routing_id}")
+        print(f"   Extension: {extension_minutes} minutes")
+        print(f"   Reason: {reason}")
+        
+        return {
+            "message": f"Conversation time extended by {extension_minutes} minutes",
+            "extension_minutes": extension_minutes,
+            "reason": reason,
+            "new_limit_minutes": 10 + extension_minutes
+        }
+        
+    except Exception as e:
+        print(f"❌ Error extending conversation time: {str(e)}")
+        return {"error": f"Failed to extend time: {str(e)}"}, 500
         
     except Exception as e:
         print(f"❌ Error completing tasks: {str(e)}")

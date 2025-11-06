@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test UI Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Smart Queue Routing System - UI Functionality Test</h1>
+    
+    <!-- Admin Add Customer Test -->
+    <div class="test-section">
+        <h2>🔧 Admin: Add Customer Test</h2>
+        <form id="adminForm">
+            <div class="form-group">
+                <label for="adminName">Customer Name:</label>
+                <input type="text" id="adminName" value="Test Admin Customer" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminSentiment">Sentiment:</label>
+                <select id="adminSentiment">
+                    <option value="positive">Positive</option>
+                    <option value="neutral" selected>Neutral</option>
+                    <option value="negative">Negative</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminTier">Tier:</label>
+                <select id="adminTier">
+                    <option value="basic">Basic</option>
+                    <option value="standard" selected>Standard</option>
+                    <option value="premium">Premium</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminIssueType">Issue Type:</label>
+                <select id="adminIssueType">
+                    <option value="technical_support" selected>Technical Support</option>
+                    <option value="billing">Billing</option>
+                    <option value="account_management">Account Management</option>
+                    <option value="sales">Sales</option>
+                    <option value="product_inquiry">Product Inquiry</option>
+                    <option value="complaint_resolution">Complaint Resolution</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminChannel">Channel:</label>
+                <select id="adminChannel">
+                    <option value="phone" selected>Phone</option>
+                    <option value="chat">Chat</option>
+                    <option value="email">Email</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminPriority">Priority (1-10):</label>
+                <input type="number" id="adminPriority" min="1" max="10" value="5">
+            </div>
+            
+            <div class="form-group">
+                <label for="adminComplexity">Issue Complexity (1-5):</label>
+                <input type="number" id="adminComplexity" min="1" max="5" step="0.1" value="3">
+            </div>
+            
+            <button type="submit">Add Customer (Admin)</button>
+        </form>
+        <div id="adminResult" class="result"></div>
+    </div>
+    
+    <!-- Customer Submit Query Test -->
+    <div class="test-section">
+        <h2>👤 Customer: Submit Query Test</h2>
+        <form id="customerForm">
+            <div class="form-group">
+                <label for="customerEmail">Email:</label>
+                <input type="email" id="customerEmail" value="customer@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerName">Name:</label>
+                <input type="text" id="customerName" value="Test Customer" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerSentiment">Sentiment:</label>
+                <select id="customerSentiment">
+                    <option value="positive">Positive</option>
+                    <option value="neutral" selected>Neutral</option>
+                    <option value="negative">Negative</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerTier">Tier:</label>
+                <select id="customerTier">
+                    <option value="basic">Basic</option>
+                    <option value="standard" selected>Standard</option>
+                    <option value="premium">Premium</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerIssueType">Issue Type:</label>
+                <select id="customerIssueType">
+                    <option value="technical_support" selected>Technical Support</option>
+                    <option value="billing">Billing</option>
+                    <option value="account_management">Account Management</option>
+                    <option value="sales">Sales</option>
+                    <option value="product_inquiry">Product Inquiry</option>
+                    <option value="complaint_resolution">Complaint Resolution</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerDescription">Issue Description:</label>
+                <textarea id="customerDescription" rows="3" placeholder="Describe your issue..." required>I need help with my account settings.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerChannel">Preferred Channel:</label>
+                <select id="customerChannel">
+                    <option value="phone" selected>Phone</option>
+                    <option value="chat">Chat</option>
+                    <option value="email">Email</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerPriority">Priority (1-10):</label>
+                <input type="number" id="customerPriority" min="1" max="10" value="5">
+            </div>
+            
+            <div class="form-group">
+                <label for="customerComplexity">Issue Complexity (1-5):</label>
+                <input type="number" id="customerComplexity" min="1" max="5" step="0.1" value="3">
+            </div>
+            
+            <button type="submit">Submit Query (Customer)</button>
+        </form>
+        <div id="customerResult" class="result"></div>
+    </div>
+    
+    <!-- Current Queue Status -->
+    <div class="test-section">
+        <h2>📊 Current Queue Status</h2>
+        <button onclick="checkQueue()">Refresh Queue Status</button>
+        <div id="queueStatus" class="result"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8000';
+        
+        // Admin Add Customer
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('adminResult');
+            resultDiv.innerHTML = 'Adding customer...';
+            
+            try {
+                const formData = {
+                    name: document.getElementById('adminName').value,
+                    sentiment: document.getElementById('adminSentiment').value,
+                    tier: document.getElementById('adminTier').value,
+                    issue_type: document.getElementById('adminIssueType').value,
+                    channel: document.getElementById('adminChannel').value,
+                    priority: parseInt(document.getElementById('adminPriority').value),
+                    issue_complexity: parseFloat(document.getElementById('adminComplexity').value)
+                };
+                
+                console.log('Admin adding customer:', formData);
+                
+                const response = await fetch(`${BASE_URL}/customers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                console.log('Admin response:', data);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success">✅ Success! Customer "${data.customer.name}" added with ID: ${data.customer.id}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                console.error('Admin error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        });
+        
+        // Customer Submit Query
+        document.getElementById('customerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('customerResult');
+            resultDiv.innerHTML = 'Submitting query...';
+            
+            try {
+                const formData = {
+                    customer_email: document.getElementById('customerEmail').value,
+                    customer_name: document.getElementById('customerName').value,
+                    sentiment: document.getElementById('customerSentiment').value,
+                    tier: document.getElementById('customerTier').value,
+                    issue_type: document.getElementById('customerIssueType').value,
+                    issue_description: document.getElementById('customerDescription').value,
+                    channel: document.getElementById('customerChannel').value,
+                    priority: parseInt(document.getElementById('customerPriority').value),
+                    issue_complexity: parseFloat(document.getElementById('customerComplexity').value)
+                };
+                
+                console.log('Customer submitting query:', formData);
+                
+                const response = await fetch(`${BASE_URL}/customer/submit-query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                console.log('Customer response:', data);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Success! Query submitted for "${data.customer.name}"<br>
+                            📍 Queue Position: ${data.queue_position}<br>
+                            ⏱️ Estimated Wait: ${data.estimated_wait_time} minutes<br>
+                            🆔 Customer ID: ${data.customer.id}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                console.error('Customer error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        });
+        
+        // Check Queue Status
+        async function checkQueue() {
+            const resultDiv = document.getElementById('queueStatus');
+            resultDiv.innerHTML = 'Loading queue status...';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/customers`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let html = `<div class="success">📊 Queue Status: ${data.count} customers waiting</div>`;
+                    
+                    if (data.customers && data.customers.length > 0) {
+                        html += '<h4>Recent Customers:</h4><ul>';
+                        data.customers.slice(-5).forEach((customer, index) => {
+                            html += `<li>${customer.name} - ${customer.issue_type} (${customer.tier}) - Priority: ${customer.priority}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error || 'Failed to load queue'}</div>`;
+                }
+            } catch (error) {
+                console.error('Queue check error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Load initial queue status
+        checkQueue();
+    </script>
+</body>
+</html>
